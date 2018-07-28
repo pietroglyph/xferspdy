@@ -15,11 +15,11 @@ import (
 // NewDiff computes a diff between a given file and Fingerprint created from some other file
 // The diff is represented as a slice of Blocks. Matching Blocks are represented just by their hashes, start and end byte position
 // Non-matching blocks are raw binary arrays.
-func NewDiff(filename string, sign Fingerprint) []Block {
+func NewDiff(filename string, sign Fingerprint) ([]Block, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
-		glog.Fatal(err)
+		return nil, err
 	}
 
 	finfo, _ := file.Stat()
@@ -27,10 +27,10 @@ func NewDiff(filename string, sign Fingerprint) []Block {
 	var delta []Block
 	processBlock(file, 0, finfo.Size(), sign, &delta)
 	glog.V(3).Infof("Delta created %v\n", delta)
-	return delta
+	return delta, nil
 }
 
-func processBlock(r io.Reader, rptr int64, filesz int64, s Fingerprint, delta *[]Block) {
+func processBlock(r io.Reader, rptr int64, filesz int64, s Fingerprint, delta *[]Block) error {
 
 	blksz := int64(s.Blocksz)
 	brem := int64(blksz)
@@ -41,13 +41,13 @@ func processBlock(r io.Reader, rptr int64, filesz int64, s Fingerprint, delta *[
 	glog.V(4).Infof("Delta %v \n", *delta)
 	if brem == 0 {
 		glog.V(2).Infof("All read\n ")
-		return
+		return nil
 	}
 
 	buf := make([]byte, brem)
 	n, err := io.ReadFull(r, buf)
 	if err != nil || int64(n) != brem {
-		glog.Fatalf("Error %v read %d bytes", err, n)
+		return err
 	}
 
 	checksum, state := Checksum(buf)
@@ -62,10 +62,10 @@ func processBlock(r io.Reader, rptr int64, filesz int64, s Fingerprint, delta *[
 		*delta = append(*delta, Block{HasData: true, Start: rptr})
 		processRolling(r, state, rptr, filesz, s, delta)
 	}
-
+	return nil
 }
 
-func processRolling(r io.Reader, st *State, rptr int64, filesz int64, s Fingerprint, delta *[]Block) {
+func processRolling(r io.Reader, st *State, rptr int64, filesz int64, s Fingerprint, delta *[]Block) error {
 
 	diff := *delta
 	db := &diff[len(diff)-1]
@@ -79,14 +79,14 @@ func processRolling(r io.Reader, st *State, rptr int64, filesz int64, s Fingerpr
 		db.RawBytes = append(db.RawBytes, st.window...)
 		*delta = diff
 		glog.V(4).Infof("db.RawBytes %v \n", db.RawBytes)
-		return
+		return nil
 	}
 	fb := st.window[0]
 	db.RawBytes = append(db.RawBytes, fb)
 	b := make([]byte, 1)
 	_, e := io.ReadFull(r, b)
 	if e != nil {
-		glog.Fatal(e)
+		return e
 	}
 	rptr++
 	checksum := st.UpdateWindow(b[0])
@@ -98,6 +98,7 @@ func processRolling(r io.Reader, st *State, rptr int64, filesz int64, s Fingerpr
 	} else {
 		processRolling(r, st, rptr, filesz, s, delta)
 	}
+	return nil
 }
 
 func matchBlock(checksum uint32, sha256 [sha256.Size]byte, s Fingerprint) (mblock Block, matched bool) {

@@ -33,13 +33,21 @@ func TestFilePatchSimpleText(t *testing.T) {
 	ofile, _ := os.OpenFile(ofname, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
 	ofile.Write(otext)
 	ofile.Close()
-	sign := NewFingerprint(ofname, uint32(blksz))
+	sign, err := NewFingerprint(ofname, uint32(blksz))
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	glog.V(4).Infof("Fingerprint for file %v\n %v\n", ofname, *sign)
 	nfname := "/tmp/TextFilePatchSimple_1"
 	nfile, _ := os.OpenFile(nfname, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
 	nfile.Write(mtext)
 	defer nfile.Close()
-	delta := NewDiff(nfname, *sign)
+	delta, err := NewDiff(nfname, *sign)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	glog.V(4).Infof("Delta = %v ", delta)
 
 	expfname := "/tmp/TextFilePatchSimple_2"
@@ -66,11 +74,19 @@ func TestFilePatchWordDocument(t *testing.T) {
 	blksz := 2048
 
 	ofname := "testdata/doc_v1.docx"
-	sign := NewFingerprint(ofname, uint32(blksz))
+	sign, err := NewFingerprint(ofname, uint32(blksz))
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	glog.V(4).Infof("Fingerprint for file %v\n %v\n", ofname, *sign)
 
 	nfname := "testdata/doc_v2.docx"
-	delta := NewDiff(nfname, *sign)
+	delta, err := NewDiff(nfname, *sign)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	glog.V(4).Infof("Delta = %v ", delta)
 
 	expfname := "/tmp/doc_patched.docx"

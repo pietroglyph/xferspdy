@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"hash/adler32"
 	"io/ioutil"
-	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -16,23 +15,28 @@ import (
 
 func TestFingerprintCreate(t *testing.T) {
 	//t.Skip("not now..")
-	sign := NewFingerprint("testdata/Adler32testresource", 2048)
+	sign, err := NewFingerprint("testdata/Adler32testresource", 2048)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	fmt.Printf(" %v\n", sign.Blocksz)
 
 }
 
 func TestRollingChecksum(t *testing.T) {
 	fmt.Println("testing checksum")
-	file, e := os.Open("testdata/samplefile")
+	file, err := os.Open("testdata/samplefile")
 	defer file.Close()
-
-	if e != nil {
-		log.Fatal(e)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
 	}
 
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
+		t.Fail()
 	}
 
 	mid := 5000
@@ -76,12 +80,20 @@ func TestNormalVsFastfpgen(t *testing.T) {
 	fmt.Printf("numblocks %d\n", numblocks)
 	start := time.Now()
 	generator := &FingerprintGenerator{Source: bfile, ConcurrentMode: false, BlockSize: uint32(blksz)}
-	sign1 := generator.Generate()
+	sign1, err := generator.Generate()
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	fmt.Printf("Time taken in Seq mode: %s \n", time.Now().Sub(start))
 
 	bfile.Seek(0, 0)
 	st := time.Now()
-	sign2 := NewFingerprintFromReader(bfile, uint32(blksz))
+	sign2, err := NewFingerprintFromReader(bfile, uint32(blksz))
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	fmt.Printf("Time taken in Fast mode: %s \n", time.Now().Sub(st))
 
 	if sign1.DeepEqual(sign2) {
@@ -89,21 +101,5 @@ func TestNormalVsFastfpgen(t *testing.T) {
 	} else {
 		t.Fail()
 	}
-
-}
-
-func Example() {
-	//Create fingerprint of a file
-	fingerprint := NewFingerprint("/path/foo_v1.binary", 1024)
-
-	//Say the file was updated
-	//Lets generate the diff
-	diff := NewDiff("/path/foo_v2.binary", *fingerprint)
-
-	//diff is sufficient to recover/recreate the modified file, given the base/source and the diff.
-	modifiedFile, _ := os.OpenFile("/path/foo_v2_from_v1.binary", os.O_CREATE|os.O_WRONLY, 0777)
-
-	//This writes the output to modifiedFile (Writer). The result will be the same binary as /path/foo_v2.binary
-	PatchFile(diff, "/path/foo_v1.binary", modifiedFile)
 
 }

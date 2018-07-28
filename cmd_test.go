@@ -34,8 +34,16 @@ func TestCmdUtilities(t *testing.T) {
 	cmd = exec.Command(fmt.Sprintf("%s/bin/patch", os.ExpandEnv("$GOPATH")), "-base", filev1, "-patch", fpatch)
 	handleCommand(cmd, t)
 
-	sign1 := NewFingerprint(filev2, uint32(2048))
-	sign2 := NewFingerprint(patchedFile, uint32(2048))
+	sign1, err := NewFingerprint(filev2, uint32(2048))
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+	sign2, err := NewFingerprint(patchedFile, uint32(2048))
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	if sign1.DeepEqual(sign2) {
 		fmt.Printf("Signature matched %s %s \n", sign1.Source, sign2.Source)
 	} else {

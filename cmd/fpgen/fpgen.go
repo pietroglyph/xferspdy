@@ -48,6 +48,9 @@ func main() {
 	fpfile.Close()
 
 	fpfile, err = os.Open(fname)
+	if err != nil {
+		glog.Fatalf("Couldn't open fingerprint file %v\n", err)
+	}
 	defer fpfile.Close()
 
 	var fp xferspdy.Fingerprint

@@ -68,9 +68,9 @@ func (f Fingerprint) String() string {
 
 // Generate creates a finger print using the FingerprintGenerator.
 // Processing i.e. concurrent or sequential depends on the generator field ConcurrentMode
-func (g *FingerprintGenerator) Generate() *Fingerprint {
+func (g *FingerprintGenerator) Generate() (*Fingerprint, error) {
 	if g.ConcurrentMode {
-		return g.genConcurrent()
+		return g.genConcurrent(), nil
 	} else {
 		return g.genSequential()
 	}
@@ -80,16 +80,16 @@ func (g *FingerprintGenerator) Generate() *Fingerprint {
 // By default it does concurrent processing of blocks to generate fingerprint.
 // However if the number of blocks is small <50 , then caller should use sequential generation,
 // since the concurrent processing would not add much value.
-// Or use the function NewFingerrprint(file, blocksize) when dealing with files, which switches
+// Or use the function NewFingerprint(file, blocksize) when dealing with files, which switches
 // mode based on the number of blocks.
 // Number of blocks can be calculated as file size/block size
-func NewFingerprintFromReader(r io.Reader, blocksz uint32) *Fingerprint {
+func NewFingerprintFromReader(r io.Reader, blocksz uint32) (*Fingerprint, error) {
 	DEFAULT_GENERATOR.Source = r
 	DEFAULT_GENERATOR.BlockSize = blocksz
 	return DEFAULT_GENERATOR.Generate()
 
 }
-func (g *FingerprintGenerator) genSequential() *Fingerprint {
+func (g *FingerprintGenerator) genSequential() (*Fingerprint, error) {
 	bufz := make([]byte, g.BlockSize)
 
 	n, start := 0, int64(0)
@@ -114,14 +114,14 @@ func (g *FingerprintGenerator) genSequential() *Fingerprint {
 			if err == io.EOF {
 				glog.V(2).Infoln("Fingerprint generation: Reader read complete")
 			} else {
-				glog.Fatal(err)
+				return nil, err
 			}
 
 		}
 
 	}
 
-	return &fngprt
+	return &fngprt, nil
 
 }
 
@@ -143,11 +143,11 @@ func (g *FingerprintGenerator) genConcurrent() *Fingerprint {
 // NewFingerprint creates a Fingerprint for a given file and blocksize.
 // By default it does concurrent processing of blocks to generate fingerprint.
 // The generation is switched to sequential mode if the number of blocks is less than 50.
-func NewFingerprint(filename string, blocksize uint32) *Fingerprint {
-	file, e := os.Open(filename)
+func NewFingerprint(filename string, blocksize uint32) (*Fingerprint, error) {
+	file, err := os.Open(filename)
 	defer file.Close()
-	if e != nil {
-		glog.Fatalf("Unable to open file %s %s", filename, e)
+	if err != nil {
+		return nil, err
 	}
 	fileInfo, _ := file.Stat()
 	numblocks := (fileInfo.Size() / int64(blocksize))
@@ -155,16 +155,20 @@ func NewFingerprint(filename string, blocksize uint32) *Fingerprint {
 	if numblocks < 50 {
 		//switch to sequential mode
 		g := &FingerprintGenerator{Source: file, ConcurrentMode: false, BlockSize: blocksize}
-		f = g.Generate()
-
+		f, err = g.Generate()
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		//use default generator
-		f = NewFingerprintFromReader(file, blocksize)
+		f, err = NewFingerprintFromReader(file, blocksize)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	f.Source = filename
-	return f
-
+	return f, nil
 }
 
 // addBlock adds the hashed block to the Fingerprint struct
@@ -182,7 +186,6 @@ func addBlock(f *Fingerprint, b *Block) {
 // numhashers determines the buffer size of the output channel where the method places the blocks which
 // been read in
 func readBlocks(r io.Reader, blocksize uint32, numhashers int) chan *Block {
-
 	blkin := make(chan *Block, numhashers)
 	n, start := 0, int64(0)
 	go func() {
@@ -200,17 +203,13 @@ func readBlocks(r io.Reader, blocksize uint32, numhashers int) chan *Block {
 			} else {
 				if err == io.EOF {
 					glog.V(2).Infoln("Fingerprint generation: Reader read complete")
-
 				} else {
 					glog.Fatal(err)
 				}
-
 			}
 		}
-
 	}()
 	return blkin
-
 }
 
 // fillBlocks takes an input channel with the bytes read from disk and creates the Checksum and SHAHashes
