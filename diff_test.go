@@ -6,11 +6,12 @@ package xferspdy
 import (
 	"flag"
 	"fmt"
-	"github.com/golang/glog"
 	"io"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/golang/glog"
 )
 
 var logLevel = flag.Int("lv", 3, "log level")

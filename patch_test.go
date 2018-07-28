@@ -6,24 +6,25 @@ package xferspdy
 import (
 	"flag"
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/golang/glog"
 )
 
 //var logLevel = flag.Int("lv", 3, "log level")
 
 func TestFilePatchSimpleText(t *testing.T) {
-	otext := []byte(`Go is building a garbage collector (GC) not only for 2015 but for 2025 and beyond: 
-		A GC that supports today’s software development and scales along with new software and hardware throughout the next decade. 
-		Such a future has no place for stop-the-world GC pauses, which have been an 
+	otext := []byte(`Go is building a garbage collector (GC) not only for 2015 but for 2025 and beyond:
+		A GC that supports today’s software development and scales along with new software and hardware throughout the next decade.
+		Such a future has no place for stop-the-world GC pauses, which have been an
 		impediment to broader uses of safe and secure languages such as Go.`)
-	mtext := []byte(`Go is building a garbage collector (GC) not only for 2015 but for 2025 and beyond: 
-		A GC that supports today’s software development and scales along with new software and hardware throughout the next decade. 
-		Such a future has no place for stop-the-world GC pauses, which have been an 
-		impediment to broader uses of safe and secure languages such as Go.Go 1.5, the first glimpse of this future, 
+	mtext := []byte(`Go is building a garbage collector (GC) not only for 2015 but for 2025 and beyond:
+		A GC that supports today’s software development and scales along with new software and hardware throughout the next decade.
+		Such a future has no place for stop-the-world GC pauses, which have been an
+		impediment to broader uses of safe and secure languages such as Go.Go 1.5, the first glimpse of this future,
 		achieves GC latencies well below the 10 millisecond goal we set a year ago.`)
 	fmt.Printf("log level %v\n", *logLevel)
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))

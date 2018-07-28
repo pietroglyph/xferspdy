@@ -7,10 +7,11 @@ import (
 	"encoding/gob"
 	"flag"
 	"fmt"
-	"github.com/golang/glog"
-	"github.com/monmohan/xferspdy"
 	"os"
 	"path/filepath"
+
+	"github.com/golang/glog"
+	"github.com/monmohan/xferspdy"
 )
 
 var (

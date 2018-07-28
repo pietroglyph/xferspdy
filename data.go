@@ -8,11 +8,12 @@ package xferspdy
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/golang/glog"
 	"hash/adler32"
 	"io"
 	"os"
 	"sync"
+
+	"github.com/golang/glog"
 )
 
 var (

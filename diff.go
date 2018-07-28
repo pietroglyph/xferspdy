@@ -6,9 +6,10 @@ package xferspdy
 
 import (
 	"crypto/sha256"
-	"github.com/golang/glog"
 	"io"
 	"os"
+
+	"github.com/golang/glog"
 )
 
 // NewDiff computes a diff between a given file and Fingerprint created from some other file
